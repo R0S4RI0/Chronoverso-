@@ -4,12 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chronoverso - Reloj Interactivo</title>
-    <!-- Importamos A-Frame para el modelo 3D -->
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <style>
-        /* =========================================
-           ESTILOS GENERALES Y DEL RELOJ
-           ========================================= */
         body {
             font-family: Arial, sans-serif;
             display: flex;
@@ -53,17 +49,26 @@
             transition: border-color 0.5s, box-shadow 0.5s;
         }
 
-        /* CORRECCIÓN DE LOS NÚMEROS */
+        /* CORRECCIÓN DEFINITIVA DE LOS NÚMEROS */
         .clock .number {
             position: absolute;
             width: 100%;
             height: 100%;
-            text-align: center;
+            top: 0;
+            left: 0;
             color: white;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
+            /* No centramos el texto aquí, lo hacemos en el span interno */
         }
         
+        .clock .number span {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%); /* Centra el número horizontalmente */
+        }
+
         /* Manecillas */
         .hour-hand, .minute-hand, .second-hand {
             position: absolute;
@@ -184,7 +189,6 @@
         </div>
     </div>
 
-    <!-- LÓGICA DE JAVASCRIPT -->
     <script>
         // --- 1. LÓGICA DEL MODELO 3D ---
         const model = document.querySelector('#boton3d');
@@ -229,26 +233,26 @@
         
         let isDigital = false;
 
-        // Generar números del reloj correctamente alineados
+        // NUEVA FORMA INFALIBLE DE COLOCAR LOS NÚMEROS
         function createClockNumbers() {
             const clock = document.getElementById('analog-clock');
-            const radius = 125; // Distancia desde el centro
             for (let i = 1; i <= 12; i++) {
-                const num = document.createElement('div');
-                num.className = 'number';
-                
-                // Rotamos el contenedor
-                num.style.transform = `rotate(${i * 30}deg)`;
+                const numWrapper = document.createElement('div');
+                numWrapper.className = 'number';
+                // Rotamos el contenedor entero
+                numWrapper.style.transform = `rotate(${i * 30}deg)`;
                 
                 const span = document.createElement('span');
                 span.innerText = i;
-                span.style.display = 'inline-block';
-                // Movemos el texto hacia arriba (radio) y lo rotamos de vuelta para que quede recto
-                span.style.transform = `rotate(-${i * 30}deg) translateY(${radius}px)`;
-                span.style.height = '100%';
+                // Empujamos el número hacia abajo (que en el reloj es hacia el borde)
+                // Usamos padding-top en lugar de translateY para que no se salga
+                span.style.paddingTop = '10px'; 
                 
-                num.appendChild(span);
-                clock.appendChild(num);
+                // Rotamos el número en sentido contrario para que se lea derecho
+                span.style.transform = `rotate(-${i * 30}deg)`;
+                
+                numWrapper.appendChild(span);
+                clock.appendChild(numWrapper);
             }
         }
         createClockNumbers();
@@ -293,9 +297,9 @@
             }
         });
 
-        // Lógica del sonido usando tu archivo MP3
+        // Lógica del sonido
         const tickSound = new Audio('./ticking-clock-sound-effect-1.mp3');
-        tickSound.loop = true; // Hace que el sonido se repita infinitamente
+        tickSound.loop = true; 
         let soundEnabled = false;
 
         document.getElementById('toggleSoundBtn').addEventListener('click', () => {
@@ -305,14 +309,29 @@
             if (soundEnabled) {
                 btn.style.backgroundColor = '#00ff00';
                 btn.style.color = '#000';
-                tickSound.play().catch(error => {
-                    console.log("El navegador bloqueó el audio hasta que interactúes con la página.", error);
-                });
+                
+                // Forzamos la carga y reproducción
+                tickSound.load(); 
+                const playPromise = tickSound.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(_ => {
+                        // Audio reproduciéndose con éxito
+                    }).catch(error => {
+                        // Si el navegador lo bloquea, mostramos alerta en consola
+                        console.error("Error al reproducir audio. Revisa que el archivo se llame exactamente igual y esté en la misma carpeta.", error);
+                        alert("No se pudo reproducir el audio. Revisa que el archivo 'ticking-clock-sound-effect-1.mp3' esté subido a GitHub con ese nombre exacto.");
+                        // Revertimos el botón si falla
+                        soundEnabled = false;
+                        btn.style.backgroundColor = '#333';
+                        btn.style.color = '#fff';
+                    });
+                }
             } else {
                 btn.style.backgroundColor = '#333';
                 btn.style.color = '#fff';
                 tickSound.pause();
-                tickSound.currentTime = 0; // Reinicia el audio
+                tickSound.currentTime = 0; 
             }
         });
     </script>
